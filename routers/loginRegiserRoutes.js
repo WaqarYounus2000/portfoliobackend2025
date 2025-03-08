@@ -77,8 +77,8 @@ router.post("/login", async (req, res) => {
             res.cookie("jwt", tokenCreated, {
                 expires: cookiesExpiry,
                 httpOnly: true,
-                secure: false,  // Change to true in production with HTTPS, in localhost it should be false
-                sameSite: "lax" // Chrome blocks cross-site cookies if this is missing, it should be lax in localhost mode and none in production
+                secure: true,  // Change to true in production with HTTPS, in localhost it should be false
+                sameSite: "none" // Chrome blocks cross-site cookies if this is missing, it should be lax in localhost mode and none in production
             });
 
             res.status(200).json({
