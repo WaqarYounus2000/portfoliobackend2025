@@ -1,11 +1,15 @@
 const express = require("express")
 require('../db/conn')
 
+const { uploadToFirebase } = require('../firebase/firebaseconfig')
+
+
 const ResumeCollection = require("../db/models/resumeData")
 const MessageCollection = require("../db/models/messages")
 
 
 const upload = require('../middlewares/multer/multerConfig');
+
 
 const router = new express.Router()
 
@@ -65,7 +69,7 @@ router.post('/resume', async (req, res) => {
 router.put('/resume', async (req, res) => {
     try {
         const { fieldPath, UpdatedValue } = req.body;  // Get field name and new value
-        console.log(fieldPath, UpdatedValue)
+        
 
         const resume = await ResumeCollection.findOne();
         if (!resume) {
@@ -131,17 +135,22 @@ router.get('/messages', async (req, res) => {
 /////////////////////////////////////file uploading routes////////////////////////////////////////////
 router.post('/upload/profile', upload.single('profileImage'), async (req, res) => {
     try {
+
+        console.log('working upload/profile')
         if (!req.file) {
             return res.status(400).json({ message: 'No image uploaded!' });
         }
 
-        const profileUrl = `/uploads/${req.file.filename}`;
+        const profileUrl = await uploadToFirebase('mainProfileImg', req.file)
 
         let resume = await ResumeCollection.findOne();
+
         if (!resume) {
             resume = new ResumeCollection({ personalInfo: { profileUrl } });
+
         } else {
             resume.personalInfo.profileUrl = profileUrl;
+            // console.log('this',resume.personalInfo.profileUrl)
         }
 
         await resume.save();
@@ -196,7 +205,8 @@ router.post('/upload/image', upload.single('projectImage'), async (req, res) => 
             return res.status(400).json({ message: 'No image uploaded!' });
         }
 
-        const imageUrl = `/uploads/${req.file.filename}`;
+        // const imageUrl = `/uploads/${req.file.filename}`;
+        const imageUrl = await uploadToFirebase('projectImages', req.file)
         res.status(200).json({ message: 'Project image uploaded!', imageUrl });
     } catch (error) {
         console.error(error);
@@ -204,21 +214,27 @@ router.post('/upload/image', upload.single('projectImage'), async (req, res) => 
     }
 });
 
+
+
 //// thsi is for resumeuploading file
 router.post('/upload/file', upload.single('pdfFile'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded!' });
         }
-        const pdfURL = `/uploads/${req.file.filename}`;
 
+        // uploadToFirebase is returning a promise so we need to use await
+        const pdfFileDownloadUrl = await uploadToFirebase('resumeFile', req.file)
+
+
+        // saving the pdfFileDownloadUrl and data to mondoDb
         const newResume = await ResumeCollection.findOneAndUpdate(
             {},
             {
                 $set: {
                     resumefile: {
                         name: req.file.filename,
-                        pdflink: pdfURL,
+                        pdflink: pdfFileDownloadUrl,
                         pdfsize: req.file.size
                     }
                 }
@@ -234,6 +250,8 @@ router.post('/upload/file', upload.single('pdfFile'), async (req, res) => {
         res.status(500).json({ error: 'Resume uploading failed!' });
     }
 });
+
+
 
 
 

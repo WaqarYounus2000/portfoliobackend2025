@@ -1,0 +1,5 @@
+// secure: false,  // Change to true in production with HTTPS, in localhost it should be false
+    // sameSite: "lax"
+    // FRONTEND_SERVER_ADDRESS = http://localhost:3000
+
+    // thsi should be changed in backend server
